@@ -1,7 +1,8 @@
 # cloud-weather-project
 # 🌦️ Serverless AI Weather Oracle & Data Lake
 **AWS Cloud Architecture | Data Engineering | Generative AI (RAG)**
-Architecture Diagram.png
+![Architecture Diagram](Architecture Diagram.png)
+
 
 A production-ready, event-driven data pipeline that automates the collection of global weather data, stores it in a partitioned S3 Data Lake, and uses Amazon Bedrock (GenAI) to provide natural language travel insights.
 
