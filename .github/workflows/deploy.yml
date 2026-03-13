@@ -33,7 +33,7 @@ jobs:
         run: |
           cd lambda
           # Zip the file using the exact name from your screenshot (Case Sensitive!)
-          zip Weather-AI-Oracle.zip Weather-Al-Oracle.py
+          zip Weather-AI-Oracle.zip Weather-AI-Oracle.py
           # Push to the AWS Function name
           aws lambda update-function-code --function-name Weather-AI-Oracle --zip-file fileb://Weather-AI-Oracle.zip
           
