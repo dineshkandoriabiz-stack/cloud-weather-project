@@ -22,18 +22,21 @@ jobs:
 
       - name: Deploy ExtractWeather
         run: |
-          # Use the exact filename on your computer
+          # Move into the folder where your code lives
+          cd lambda
+          # Zip the file using the exact name from your screenshot
           zip extract_weather.zip extract_weather.py
-          # Deploy to the exact function name in AWS
+          # Push to the AWS Function name
           aws lambda update-function-code --function-name ExtractWeather --zip-file fileb://extract_weather.zip
 
       - name: Deploy Weather-AI-Oracle
         run: |
-          # Use the exact filename on your computer
-          zip ai_oracle.zip weather_ai_oracle.py
-          # Deploy to the exact function name in AWS
+          cd lambda
+          # Zip the file using the exact name from your screenshot (Case Sensitive!)
+          zip ai_oracle.zip Weather-Al-Oracle.py
+          # Push to the AWS Function name
           aws lambda update-function-code --function-name Weather-AI-Oracle --zip-file fileb://ai_oracle.zip
           
-          # Wait for code to process then update environment variables
+          # Wait for code update before changing config
           sleep 10
           aws lambda update-function-configuration --function-name Weather-AI-Oracle --environment "Variables={GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}}"
