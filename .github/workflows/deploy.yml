@@ -20,30 +20,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-2 
 
-      - name: Deploy ExtractWeather Lambda
+      - name: Deploy ExtractWeather
         run: |
-          # Zip the specific Python file for the first function
+          # Use the exact filename on your computer
           zip extract_weather.zip extract_weather.py
-          
-          # Upload the zip to the ExtractWeather function
-          aws lambda update-function-code \
-            --function-name ExtractWeather \
-            --zip-file fileb://extract_weather.zip
+          # Deploy to the exact function name in AWS
+          aws lambda update-function-code --function-name ExtractWeather --zip-file fileb://extract_weather.zip
 
-      - name: Deploy Weather-AI-Oracle Lambda
+      - name: Deploy Weather-AI-Oracle
         run: |
-          # Zip the specific Python file for the second function
+          # Use the exact filename on your computer
           zip ai_oracle.zip weather_ai_oracle.py
+          # Deploy to the exact function name in AWS
+          aws lambda update-function-code --function-name Weather-AI-Oracle --zip-file fileb://ai_oracle.zip
           
-          # Upload the zip to the Weather-AI-Oracle function
-          aws lambda update-function-code \
-            --function-name Weather-AI-Oracle \
-            --zip-file fileb://ai_oracle.zip
-            
-          # Wait 10 seconds for AWS to finish the code update
+          # Wait for code to process then update environment variables
           sleep 10
-          
-          # Securely inject the Groq API key into the environment variables
-          aws lambda update-function-configuration \
-            --function-name Weather-AI-Oracle \
-            --environment "Variables={GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}}"
+          aws lambda update-function-configuration --function-name Weather-AI-Oracle --environment "Variables={GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}}"
