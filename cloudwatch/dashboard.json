@@ -1,0 +1,40 @@
+{
+    "widgets": [
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "ExtractWeather", { "color": "#2ca02c", "id": "m1" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728", "id": "m2" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "ap-southeast-2",
+                "title": "ExtractWeather Health",
+                "period": 300
+            }
+        },
+        {
+            "type": "metric",
+            "x": 12,
+            "y": 0,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "Weather-AI-Oracle", { "color": "#1f77b4", "id": "m1" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728", "id": "m2" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "ap-southeast-2",
+                "title": "Weather-AI-Oracle Health",
+                "period": 300
+            }
+        }
+    ]
+}
