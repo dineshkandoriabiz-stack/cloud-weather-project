@@ -29,14 +29,4 @@ jobs:
           # Push to the AWS Function name
           aws lambda update-function-code --function-name ExtractWeather --zip-file fileb://extract_weather.zip
 
-      - name: Deploy Weather-AI-Oracle
-        run: |
-          cd lambda
-          # Zip the file using the exact name from your screenshot (Case Sensitive!)
-          zip Weather-AI-Oracle.zip Weather-AI-Oracle.py
-          # Push to the AWS Function name
-          aws lambda update-function-code --function-name Weather-AI-Oracle --zip-file fileb://Weather-AI-Oracle.zip
-          
-          # Wait for code update before changing config
-          sleep 10
-          aws lambda update-function-configuration --function-name Weather-AI-Oracle --environment "Variables={GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}}"
+      
