@@ -1,0 +1,13 @@
+CREATE OR REPLACE VIEW default.weather_ai_training AS
+SELECT 
+  city, -- NEW COLUMN
+  obs_date,
+  -- We inject the city name right into the text for the LLM!
+  concat('On ', cast(obs_date as varchar), ' in ', city, ', the average temperature was ', cast(round(avg(temperature), 1) as varchar), ' degrees Celsius.') as ai_summary,
+  CASE 
+    WHEN avg(temperature) < 10 THEN 'Cold'
+    WHEN avg(temperature) >= 10 AND avg(temperature) < 25 THEN 'Mild'
+    ELSE 'Hot'
+  END as climate_category
+FROM default.weather_refined
+GROUP BY city, obs_date;
