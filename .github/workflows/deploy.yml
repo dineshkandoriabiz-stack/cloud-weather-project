@@ -32,7 +32,7 @@ jobs:
       - name: Deploy Athena SQL View
         run: |
           # 1. Read the SQL file from the repo into a variable
-          QUERY=$(cat sql/athena/03_weather_ai_training.sql)
+          QUERY=$(cat sql\athena\03_weather_ai_training.sql)
           
           # 2. Tell AWS to execute that SQL in Athena
           # Note: Athena requires an S3 bucket to drop query logs into!
