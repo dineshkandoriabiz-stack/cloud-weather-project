@@ -29,4 +29,14 @@ jobs:
           # Push to the AWS Function name
           aws lambda update-function-code --function-name ExtractWeather --zip-file fileb://extract_weather.zip
 
-      
+      - name: Deploy Athena SQL View
+        run: |
+          # 1. Read the SQL file from the repo into a variable
+          QUERY=$(cat sql/weather_ai_training.sql)
+          
+          # 2. Tell AWS to execute that SQL in Athena
+          # Note: Athena requires an S3 bucket to drop query logs into!
+          aws athena start-query-execution \
+            --query-string "$QUERY" \
+            --query-execution-context Database=default \
+            --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
