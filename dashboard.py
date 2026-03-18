@@ -84,7 +84,7 @@ if not cities_df.empty:
         st.info(latest_summary)
 
         # Show the raw data table
-        st.dataframe(city_data, use_container_width=True)
+       # st.dataframe(city_data, use_container_width=True)
 
         # --- THE ON-DEMAND AI ORACLE ---
         st.divider()
