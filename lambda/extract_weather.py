@@ -83,7 +83,8 @@ def lambda_handler(event, context):
     # 2. Loop through each city
     for city_name, coords in cities.items():
         conn = http.client.HTTPSConnection("api.open-meteo.com")
-        url = f"/v1/forecast?latitude={coords['lat']}&longitude={coords['lon']}&hourly=temperature_2m&past_days=7"
+        # Extended URL with temperature, air quality, precipitation, and solar radiation
+        url = f"/v1/forecast?latitude={coords['lat']}&longitude={coords['lon']}&hourly=temperature_2m,air_quality,precipitation,rain,showers,shortwave_radiation&air_quality_variables=aqi,pm2_5,pm10,no2,so2,co&past_days=7"
         
         try:
             conn.request("GET", url)
@@ -95,13 +96,48 @@ def lambda_handler(event, context):
             
             with open(tmp_filename, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['city', 'latitude', 'longitude', 'temperature', 'time'])
+                writer.writerow([
+                    'city', 'latitude', 'longitude', 'time', 'temperature_2m',
+                    'aqi', 'pm2_5', 'pm10', 'no2', 'so2', 'co',
+                    'precipitation', 'rain', 'showers', 'shortwave_radiation'
+                ])
                 
                 times = data['hourly']['time']
                 temps = data['hourly']['temperature_2m']
                 
-                for t, temp in zip(times, temps):
-                    writer.writerow([city_name, coords['lat'], coords['lon'], temp, t])
+                # Extract air quality data (nested under 'air_quality' key)
+                air_quality_data = data['hourly'].get('air_quality', {})
+                aqi_data = air_quality_data.get('aqi', [None] * len(times))
+                pm2_5_data = air_quality_data.get('pm2_5', [None] * len(times))
+                pm10_data = air_quality_data.get('pm10', [None] * len(times))
+                no2_data = air_quality_data.get('no2', [None] * len(times))
+                so2_data = air_quality_data.get('so2', [None] * len(times))
+                co_data = air_quality_data.get('co', [None] * len(times))
+                
+                # Extract precipitation and radiation data
+                precipitation = data['hourly'].get('precipitation', [None] * len(times))
+                rain = data['hourly'].get('rain', [None] * len(times))
+                showers = data['hourly'].get('showers', [None] * len(times))
+                solar_radiation = data['hourly'].get('shortwave_radiation', [None] * len(times))
+                
+                for i, t in enumerate(times):
+                    writer.writerow([
+                        city_name,
+                        coords['lat'],
+                        coords['lon'],
+                        t,
+                        temps[i] if i < len(temps) else None,
+                        aqi_data[i] if i < len(aqi_data) else None,
+                        pm2_5_data[i] if i < len(pm2_5_data) else None,
+                        pm10_data[i] if i < len(pm10_data) else None,
+                        no2_data[i] if i < len(no2_data) else None,
+                        so2_data[i] if i < len(so2_data) else None,
+                        co_data[i] if i < len(co_data) else None,
+                        precipitation[i] if i < len(precipitation) else None,
+                        rain[i] if i < len(rain) else None,
+                        showers[i] if i < len(showers) else None,
+                        solar_radiation[i] if i < len(solar_radiation) else None
+                    ])
                     total_records += 1
             
             # 4. Upload to S3 with the city name in the file path

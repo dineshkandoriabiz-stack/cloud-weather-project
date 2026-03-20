@@ -59,7 +59,7 @@ def fetch_athena_data(query):
         return pd.DataFrame()
 
 # --- UI FRONTEND ---
-st.title("🌍 Global Tech Hubs: AI Weather Oracle")
+st.title("🌍 Global 50 Cities: AI Weather Oracle")
 st.markdown("A Serverless Data Lakehouse built on AWS S3, Athena, and EventBridge.")
 
 # 1. Fetch the unique list of cities directly from Athena
@@ -70,7 +70,7 @@ if not cities_df.empty:
     cities_list = cities_df['city'].tolist()
     
     # 2. Create a dropdown menu for the user
-    selected_city = st.selectbox("Select a Global Tech Hub:", cities_list)
+    selected_city = st.selectbox("Select a Global 50 City:", cities_list)
 
     # 3. When a city is selected, query its specific data
     if selected_city:
@@ -94,13 +94,13 @@ if not cities_df.empty:
         groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
         # Give the user a button to generate travel advice
-        if st.button(f"Generate Travel & Clothing Advice for {selected_city}"):
+        if st.button(f"Generate Travel & Clothing Advice and top companies/industries based there for {selected_city}"):
             with st.spinner("The Oracle is consulting the data..."):
                 try:
                     # We pass the Athena summary as the context!
                     chat_completion = groq_client.chat.completions.create(
                         messages=[
-                            {"role": "system", "content": "You are a helpful travel assistant. Keep advice short, formatting it with bullet points."},
+                            {"role": "system", "content": "You are a helpful travel assistant, provide advice, formatting it with bullet points."},
                             {"role": "user", "content": f"Based on this weather: '{latest_summary}', suggest 3 activities and what to wear."}
                         ],
                         model="llama-3.1-8b-instant",

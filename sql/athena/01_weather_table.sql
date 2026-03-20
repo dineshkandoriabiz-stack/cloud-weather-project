@@ -1,11 +1,20 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS default.weather_raw_data (
-  city string,
-  latitude double,
-  longitude double,
-  temperature double,
-  time string
+CREATE EXTERNAL TABLE IF NOT EXISTS default.weather_raw (
+    city STRING,
+    latitude DOUBLE,
+    longitude DOUBLE,
+    `time` STRING,
+    temperature_2m DOUBLE,
+    aqi DOUBLE,
+    pm2_5 DOUBLE,
+    pm10 DOUBLE,
+    no2 DOUBLE,
+    so2 DOUBLE,
+    co DOUBLE,
+    precipitation DOUBLE,
+    rain DOUBLE,
+    showers DOUBLE,
+    shortwave_radiation DOUBLE
 )
-PARTITIONED BY (year string, month string)
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE

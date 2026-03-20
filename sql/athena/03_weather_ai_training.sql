@@ -1,21 +1,12 @@
-CREATE OR REPLACE VIEW default.weather_ai_training AS
+CREATE OR REPLACE VIEW weather_ai_training AS
 SELECT 
-  city, 
-  obs_date,
-  -- Dynamic tense selection based on the current date
-  concat(
-    'On ', cast(obs_date as varchar), 
-    ', the average temperature in ', city, ' ',
-    CASE 
-      WHEN obs_date < CURRENT_DATE THEN 'was '
-      ELSE 'is expected to be '
-    END,
-    cast(round(avg(temperature), 1) as varchar), ' degrees Celsius.'
-  ) as ai_summary,
-  CASE 
-    WHEN avg(temperature) < 10 THEN 'Cold'
-    WHEN avg(temperature) >= 10 AND avg(temperature) < 25 THEN 'Mild'
-    ELSE 'Hot'
-  END as climate_category
-FROM default.weather_refined
-GROUP BY city, obs_date;
+    city,
+    CONCAT(
+        'The city of ', city, 
+        ' has an average temperature of ', CAST(avg_temp_c AS VARCHAR), '°C ',
+        'with a high of ', CAST(max_temp AS VARCHAR), '°C. ',
+        'Average precipitation is ', CAST(avg_precipitation AS VARCHAR), 'mm, ',
+        'and the Air Quality Index (AQI) is ', CAST(avg_aqi AS VARCHAR), '. ',
+        'Forecast generated at: ', latest_forecast_time
+    ) AS ai_summary
+FROM default.weather_refined;
