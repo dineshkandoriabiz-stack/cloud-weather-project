@@ -60,7 +60,7 @@ def fetch_athena_data(query):
 
 # --- UI FRONTEND ---
 st.title("🌍 Global 50 Cities: AI Weather Oracle")
-#st.markdown("A Serverless Data Lakehouse built on AWS S3, Athena, and EventBridge.")
+st.markdown("A Serverless Data Lakehouse built on AWS S3, Athena, and EventBridge.")
 
 # 1. Fetch the unique list of cities directly from Athena
 city_query = f"SELECT DISTINCT city FROM {TABLE} ORDER BY city"
@@ -80,7 +80,7 @@ if not cities_df.empty:
         st.subheader(f"Latest Insights for {selected_city}")
         
         # Display the AI Summary string we built in Athena
-       # latest_summary = city_data['ai_summary'].iloc[0] if not city_data.empty else "No data available."
+        latest_summary = city_data['ai_summary'].iloc[0] if not city_data.empty else "No data available."
        # st.info(latest_summary)
 
         # Show the raw data table
