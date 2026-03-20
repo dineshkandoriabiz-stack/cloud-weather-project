@@ -74,17 +74,17 @@ if not cities_df.empty:
 
     # 3. When a city is selected, query its specific data
     if selected_city:
-        data_query = f"SELECT obs_date, ai_summary, climate_category FROM {TABLE} WHERE city = '{selected_city}' ORDER BY obs_date DESC"
+        data_query = f"SELECT ai_summary FROM {TABLE} WHERE city = '{selected_city}'"
         city_data = fetch_athena_data(data_query)
         
         st.subheader(f"Latest Insights for {selected_city}")
         
         # Display the AI Summary string we built in Athena
-        latest_summary = city_data['ai_summary'].iloc[0] if not city_data.empty else "No data available."
-        st.info(latest_summary)
+       # latest_summary = city_data['ai_summary'].iloc[0] if not city_data.empty else "No data available."
+       # st.info(latest_summary)
 
         # Show the raw data table
-       # st.dataframe(city_data, use_container_width=True)
+        st.dataframe(city_data, use_container_width=True)
 
         # --- THE ON-DEMAND AI ORACLE ---
         st.divider()
