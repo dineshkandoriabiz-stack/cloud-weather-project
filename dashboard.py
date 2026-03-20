@@ -81,7 +81,7 @@ if not cities_df.empty:
         
         # Display the AI Summary string we built in Athena
         latest_summary = city_data['ai_summary'].iloc[0] if not city_data.empty else "No data available."
-       # st.info(latest_summary)
+        st.info(latest_summary)
 
         # Show the raw data table
         st.dataframe(city_data, use_container_width=True)
