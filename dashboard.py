@@ -60,7 +60,7 @@ def fetch_athena_data(query):
 
 # --- UI FRONTEND ---
 st.title("🌍 Global 50 Cities: AI Weather Oracle")
-st.markdown("A Serverless Data Lakehouse built on AWS S3, Athena, and EventBridge.")
+#st.markdown("A Serverless Data Lakehouse built on AWS S3, Athena, and EventBridge.")
 
 # 1. Fetch the unique list of cities directly from Athena
 city_query = f"SELECT DISTINCT city FROM {TABLE} ORDER BY city"
@@ -94,14 +94,14 @@ if not cities_df.empty:
         groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
         # Give the user a button to generate travel advice
-        if st.button(f"Generate Travel & Clothing Advice and top companies/industries based there for {selected_city}"):
+        if st.button(f"Generate Travel & Clothing Advice for {selected_city} and provide information about top food/resataurant to try as per weather/climate there in {selected_city}"):
             with st.spinner("The Oracle is consulting the data..."):
                 try:
                     # We pass the Athena summary as the context!
                     chat_completion = groq_client.chat.completions.create(
                         messages=[
-                            {"role": "system", "content": "You are a helpful travel assistant, provide advice, formatting it with bullet points."},
-                            {"role": "user", "content": f"Based on this weather: '{latest_summary}', suggest 3 activities and what to wear."}
+                            {"role": "system", "content": "You are a helpful travel assistant, provide advice formatting it with bullet points."},
+                            {"role": "user", "content": f"Based on this weather: '{latest_summary}', Travel & Clothing Advice and provide information about top food/resataurant to try as per weather/climate "}
                         ],
                         model="llama-3.1-8b-instant",
                         max_tokens=300
