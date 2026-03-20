@@ -127,7 +127,7 @@ if not cities_df.empty:
                                 {"role": "user", "content": f"Based on this weather summary: '{latest_summary}', provide Travel & Clothing Advice for {selected_city}. Also, provide information about top food/restaurants to try as per the weather/climate."}
                             ],
                             model="llama-3.1-8b-instant",
-                            max_tokens=400
+                            max_tokens=1024
                         )
 
                         # Display the AI's response
