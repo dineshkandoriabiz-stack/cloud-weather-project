@@ -4,17 +4,18 @@ import pandas as pd
 import time
 import io
 from groq import Groq
+from datetime import datetime
+
 # --- CONFIGURATION ---
 DATABASE = 'default'
 TABLE = 'weather_ai_training'
-# Keep your exact bucket name, but add /athena_results/ at the end
 S3_OUTPUT = 's3://open-meteo-lake-dinesh-kandoria/athena_results/' 
-REGION = 'ap-southeast-2' # Adjust if your AWS region is different
+REGION = 'ap-southeast-2'
 
 st.set_page_config(page_title="Global Weather AI Oracle", page_icon="🌍", layout="wide")
 
 # --- AWS ATHENA HELPER FUNCTION ---
-@st.cache_data(ttl=3600) # Caches the data for 1 hour so it doesn't query AWS on every click
+@st.cache_data(ttl=3600)
 def fetch_athena_data(query):
     athena_client = boto3.client(
         'athena', 
@@ -29,7 +30,6 @@ def fetch_athena_data(query):
         aws_secret_access_key=st.secrets["AWS_SECRET_ACCESS_KEY"]
     )
 
-    # Start the query
     response = athena_client.start_query_execution(
         QueryString=query,
         QueryExecutionContext={'Database': DATABASE},
@@ -37,7 +37,6 @@ def fetch_athena_data(query):
     )
     query_id = response['QueryExecutionId']
 
-    # Wait for the query to finish
     with st.spinner("Querying AWS Athena Data Lake..."):
         while True:
             stats = athena_client.get_query_execution(QueryExecutionId=query_id)
@@ -47,7 +46,6 @@ def fetch_athena_data(query):
             time.sleep(2)
 
     if status == 'SUCCEEDED':
-        # Fetch the results from S3
         s3_key = f"athena_results/{query_id}.csv"
         bucket_name = S3_OUTPUT.split('/')[2]
         
@@ -60,7 +58,6 @@ def fetch_athena_data(query):
 
 # --- UI FRONTEND ---
 st.title("🌍 Global 50 Cities: AI Weather Oracle")
-st.markdown("A Serverless Data Lakehouse built on AWS S3, Athena, and EventBridge.")
 
 # 1. Fetch the unique list of cities directly from Athena
 city_query = f"SELECT DISTINCT city FROM {TABLE} ORDER BY city"
@@ -74,43 +71,69 @@ if not cities_df.empty:
 
     # 3. When a city is selected, query its specific data
     if selected_city:
-        data_query = f"SELECT ai_summary FROM {TABLE} WHERE city = '{selected_city}'"
+        # We query all available columns to be safe with schema updates
+        data_query = f"SELECT * FROM {TABLE} WHERE city = '{selected_city}'"
         city_data = fetch_athena_data(data_query)
         
-        st.subheader(f"Latest Insights for {selected_city}")
-        
-        # Display the AI Summary string we built in Athena
-        latest_summary = city_data['ai_summary'].iloc[0] if not city_data.empty else "No data available."
-        st.info(latest_summary)
+        if not city_data.empty:
+            
+            # Check if the date column exists to apply the Time Travel Blocker
+            if 'obs_date' in city_data.columns:
+                # 1. Get today's date as a string (Format: YYYY-MM-DD)
+                today_str = datetime.now().strftime('%Y-%m-%d')
+                
+                # Ensure data is string format for clean comparison
+                city_data['obs_date'] = city_data['obs_date'].astype(str)
+                
+                # 2. Filter the Pandas DataFrame to ONLY include today or future dates
+                future_data = city_data[city_data['obs_date'] >= today_str]
+                
+                # 3. Extract unique dates for the dropdown
+                available_dates = future_data['obs_date'].unique().tolist()
+                
+                if not available_dates:
+                    st.warning("No future forecast data available for this city right now.")
+                    latest_summary = city_data['ai_summary'].iloc[0] if 'ai_summary' in city_data.columns else "No summary available."
+                    st.info(latest_summary)
+                else:
+                    selected_date = st.selectbox("Select Travel Date:", sorted(available_dates))
+                    st.subheader(f"Latest Insights for {selected_city} on {selected_date}")
+                    
+                    # Filter to ONLY show the summary for the chosen date
+                    final_display_data = future_data[future_data['obs_date'] == selected_date]
+                    latest_summary = final_display_data['ai_summary'].iloc[0]
+                    st.info(latest_summary)
+            else:
+                # Fallback if the 'obs_date' column hasn't been added to the SQL view yet
+                st.subheader(f"Latest Insights for {selected_city}")
+                latest_summary = city_data['ai_summary'].iloc[0] if 'ai_summary' in city_data.columns else "No summary available."
+                st.info(latest_summary)
 
-        # Show the raw data table
-        st.dataframe(city_data, use_container_width=True)
+            # --- THE ON-DEMAND AI ORACLE ---
+            st.divider()
+            st.subheader(f"🤖 Ask the AI Oracle about {selected_city}")
 
-        # --- THE ON-DEMAND AI ORACLE ---
-        st.divider()
-        st.subheader(f"🤖 Ask the AI Oracle about {selected_city}")
+            # Initialize the Groq client using hidden secrets
+            groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-        # Initialize the Groq client using your hidden secrets
-        groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            # Button to generate advice
+            if st.button(f"Generate Travel, Clothing & Food Advice for {selected_city}"):
+                with st.spinner("The Oracle is consulting the data..."):
+                    try:
+                        # Pass the Athena summary as context
+                        chat_completion = groq_client.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": "You are a helpful travel assistant. Provide advice formatting it with bullet points. Always include top local food and restaurant recommendations suited for the current weather."},
+                                {"role": "user", "content": f"Based on this weather summary: '{latest_summary}', provide Travel & Clothing Advice for {selected_city}. Also, provide information about top food/restaurants to try as per the weather/climate."}
+                            ],
+                            model="llama-3.1-8b-instant",
+                            max_tokens=400
+                        )
 
-        # Give the user a button to generate travel advice
-        if st.button(f"Generate Travel & Clothing Advice for {selected_city} and provide information about top food/resataurant to try as per weather/climate there in {selected_city}"):
-            with st.spinner("The Oracle is consulting the data..."):
-                try:
-                    # We pass the Athena summary as the context!
-                    chat_completion = groq_client.chat.completions.create(
-                        messages=[
-                            {"role": "system", "content": "You are a helpful travel assistant, provide advice formatting it with bullet points."},
-                            {"role": "user", "content": f"Based on this weather: '{latest_summary}', Travel & Clothing Advice and provide information about top food/resataurant to try as per weather/climate "}
-                        ],
-                        model="llama-3.1-8b-instant",
-                        max_tokens=300
-                    )
-
-                    # Display the AI's response in a nice UI box
-                    st.success(chat_completion.choices[0].message.content)
-                except Exception as e:
-                    st.error(f"AI Connection Error: {e}")
+                        # Display the AI's response
+                        st.success(chat_completion.choices[0].message.content)
+                    except Exception as e:
+                        st.error(f"AI Connection Error: {e}")
 
 else:
     st.warning("No data found in Athena. Make sure your extraction Lambda has run successfully!")

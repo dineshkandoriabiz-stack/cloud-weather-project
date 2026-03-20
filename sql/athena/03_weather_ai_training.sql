@@ -1,6 +1,7 @@
 CREATE OR REPLACE VIEW weather_ai_training AS
 SELECT 
     city,
+    obs_date,
     CONCAT(
         'The city of ', city, 
         ' has an average temperature of ', CAST(avg_temp_c AS VARCHAR), '°C ',
