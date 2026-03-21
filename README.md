@@ -19,7 +19,7 @@ graph TD
     F <-->|Prompt & Response| G((Groq API: LLaMA 3.1))
     H[GitHub Actions] -->|CI/CD Automation| B & E & F
 
-
+------------
 ⚙️ Tech Stack & Pipeline Breakdown
 1. Data Ingestion & Storage (The S3 Data Lake)
 Python & Boto3: A lightweight extraction script querying the Open-Meteo API for 15 granular data points (Temperature, AQI, Precipitation, Solar Radiation).
@@ -45,28 +45,6 @@ Pandas & Time-Series Filtering: Custom logic to block past-date selections, ensu
 
 Groq API (LLaMA 3.1 8B): Integrates the live Athena SQL summaries as system context for the LLM. Engineered prompts force the model to output structured, bulleted travel, clothing, and localized restaurant recommendations based strictly on the current climate.
 
-🚀 How to Run Locally
-Clone the repository:
-
-Bash
-git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
-cd your-repo-name
-Install dependencies:
-
-Bash
-pip install -r requirements.txt
-Configure Secrets:
-Create a .streamlit/secrets.toml file in the root directory and add your AWS and Groq API credentials:
-
-Ini, TOML
-AWS_ACCESS_KEY_ID = "your_access_key"
-AWS_SECRET_ACCESS_KEY = "your_secret_key"
-AWS_DEFAULT_REGION = "ap-southeast-2"
-GROQ_API_KEY = "your_groq_key"
-Launch the app:
-
-Bash
-streamlit run dashboard.py
 🧠 Future Enhancements
 [ ] Integrate AWS Glue Crawlers for automated schema detection.
 
