@@ -19,6 +19,7 @@ graph TD
     F <-->|Prompt & Response| G((Groq API: LLaMA 3.1))
     H[GitHub Actions] -->|CI/CD Automation| B & E & F
 
+
 ⚙️ Tech Stack & Pipeline Breakdown
 1. Data Ingestion & Storage (The S3 Data Lake)
 Python & Boto3: A lightweight extraction script querying the Open-Meteo API for 15 granular data points (Temperature, AQI, Precipitation, Solar Radiation).
