@@ -1,69 +1,34 @@
-# cloud-weather-project
-# 🌦️ Serverless AI Weather Oracle & Data Lakehouse
-**AWS Cloud Architecture | Data Engineering | Multi-Cloud GenAI (RAG)**
+# 🌍 A 50-City Data Pipeline Feeding a LLaMA-Powered Travel Oracle
+**[🟢 Live Application / Demo](https://cloud-aws-weather-project-9grnnrrrkqiksy55ch2.streamlit.app/)** ## 📌 Project Overview
+An end-to-end, fully serverless Data Lakehouse and Generative AI application. This project extracts, transforms, and loads (ETL) real-time environmental data for 50 global tech hubs, utilizing a LLaMA 3.1 LLM to generate contextual, weather-aware travel and culinary advice.
 
-![Architecture Diagram](Architecture Diagram.png)
+This architecture demonstrates advanced Cloud Engineering, automated DataOps, and GenAI prompt engineering, operating entirely on scalable, low-cost serverless infrastructure.
 
-A production-ready, event-driven data pipeline that automates the collection of global weather data, stores it in a partitioned S3 Data Lake, and utilizes a Multi-Cloud AI strategy to provide natural language travel insights via Llama 3.1.
+## 🏗️ Architecture & Tech Stack
 
----
+### 1. Data Ingestion & Storage (The S3 Data Lake)
+* **Python & Boto3:** A lightweight extraction script querying the Open-Meteo API for 15 data points (Temperature, AQI, Precipitation, Solar Radiation).
+* **AWS Lambda & EventBridge:** Fully automated, serverless compute triggered on a scheduled CRON job.
+* **Amazon S3:** Raw CSVs are partitioned by `year` and `month` for optimal query scanning and storage efficiency.
+* **S3 Lifecycle Policies:** Implemented automated FinOps rules to purge temporary Athena logs after 7 days, maintaining a zero-maintenance, cost-effective storage layer.
 
-## 🏗️ The Architecture
+### 2. Data Transformation (The Athena Lakehouse)
+* **Amazon Athena (Presto SQL):** Serverless query engine used to transform raw S3 files into structured, AI-ready insights.
+* **Schema Evolution:** Handled schema drift by building modular `CREATE EXTERNAL TABLE` and `CREATE VIEW` scripts to aggregate metrics like Average AQI and Max Temperatures into summarized context strings.
 
-This project implements a Modern Data Lakehouse pattern using serverless AWS services, integrated with high-performance AI inference.
+### 3. CI/CD & Automation (DataOps)
+* **GitHub Actions:** A robust YAML pipeline that automatically deploys Python code to AWS Lambda and executes updated SQL schemas directly in Amazon Athena upon every `git push`.
 
-- **Ingestion:** AWS Lambda (Python 3.12) fetches 14-day snapshots (History + Forecast) from the Open-Meteo API.
-- **Orchestration:** Amazon EventBridge triggers the ingestion daily at a cost-optimized rate.
-- **Storage (Data Lake):** Amazon S3 organized with Hive-style Partitioning (`year/month`) for high-performance querying.
-- **Data Warehouse:** Amazon Athena provides a SQL interface over raw S3 CSV files using Schema-on-Read.
-- **AI Intelligence (RAG):** A secondary Lambda acts as an AI Oracle, querying Athena SQL aggregates and passing context to Llama 3.1 (via Groq) for sub-second natural language reasoning.
-
----
-
-## 🚀 Technical Highlights
-
-### 1. Multi-Cloud AI Resiliency
-Initially designed for Amazon Bedrock, the AI layer was migrated to Groq (Llama 3.1 8B) to optimize for token quotas and sub-second inference latency. This demonstrates a **Vendor-Agnostic Architecture** capable of switching LLM providers via API integration.
-
-### 2. Retrieval-Augmented Generation (RAG)
-Instead of relying on an LLM's static training data, this pipeline feeds real-time SQL aggregates from Athena into the AI model. This ensures the "Oracle" provides factual, data-driven travel advice based on current atmospheric conditions.
-
-### 3. Big Data Partitioning
-I implemented S3 Partitioning (`raw_data/year=YYYY/month=MM/`). This allows Athena to "prune" data, scanning only the necessary folders. This is an enterprise-standard technique for managing petabyte-scale data lakes cost-effectively.
-
-### 4. Live Automated Ingestion
-The `DailyWeatherExtraction` EventBridge rule is perfectly active with a `rate(1 day)` schedule. This is the **heartbeat** of the project — it ensures the data lake grows every single day with fresh weather snapshots, making the AI Oracle's insights continuously up-to-date.
+### 4. Frontend UI & Generative AI
+* **Streamlit Community Cloud:** A dynamic, interactive Python web application directly connected to the Athena Data Lake.
+* **Pandas & Time-Series Filtering:** Custom logic to block past-date selections, ensuring the UI only presents relevant forecasting data.
+* **Groq API (LLaMA 3.1 8B):** Integrates the live Athena SQL summaries as context limits for the LLM. Engineered prompts force the model to output structured, bulleted travel, clothing, and localized restaurant recommendations based strictly on the current climate.
 
 ---
 
-## 📊 SQL Transformation Layer
+## 🚀 How to Run Locally
 
-I developed a Refined View to transform raw strings into queryable timestamps and AI-ready summaries:
-
-```sql
-CREATE OR REPLACE VIEW weather_ai_training AS
-SELECT 
-    obs_date,
-    'Forecast for London: High ' || CAST(MAX(temperature) AS VARCHAR) || '°C, Low ' || CAST(MIN(temperature) AS VARCHAR) || '°C.' as ai_summary
-FROM weather_refined
-GROUP BY obs_date;
-```
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technology |
-|---|---|
-| Cloud Provider | AWS (Lambda, S3, Athena, EventBridge, IAM) |
-| AI Inference | Groq Cloud (Llama 3.1 8B Instant) |
-| Languages | Python 3.12, SQL |
-| Frameworks | Boto3 (AWS SDK), REST API Integration |
-
----
-
-## 🛤️ Future Roadmap
-
-- **Observability:** Implement Amazon SNS for automated "On-Failure" email alerts.
-- **FinOps:** Set S3 Lifecycle Policies to automate data expiration and cost control.
-- **Frontend:** Develop a simple web UI to display AI-generated travel advice.
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+   cd your-repo-name
