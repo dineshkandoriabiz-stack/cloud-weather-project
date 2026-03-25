@@ -20,23 +20,43 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-2 
 
+      # --- 1. DEPLOY LAMBDA ---
       - name: Deploy ExtractWeather
         run: |
-          # Move into the folder where your code lives
           cd lambda
-          # Zip the file using the exact name from your screenshot
           zip extract_weather.zip extract_weather.py
-          # Push to the AWS Function name
           aws lambda update-function-code --function-name ExtractWeather --zip-file fileb://extract_weather.zip
 
-      - name: Deploy Athena SQL View
+      # --- 2. DEPLOY ATHENA INFRASTRUCTURE (Medallion Architecture) ---
+      
+      # Step A: Base Table (Bronze) - Path: sql/athena/weather_data.sql
+      - name: Deploy weather_data Table
         run: |
-          # 1. Read the SQL file from the repo into a variable
-          QUERY=$(cat sql/athena/03_weather_ai_training.sql)
-          
-          # 2. Tell AWS to execute that SQL in Athena
-          # Note: Athena requires an S3 bucket to drop query logs into!
           aws athena start-query-execution \
-            --query-string "$QUERY" \
+            --query-string "$(cat sql/athena/weather_data.sql)" \
+            --query-execution-context Database=default \
+            --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
+
+      # Step B: Refined View (Silver) - Path: sql/athena/weather_refined.sql
+      - name: Deploy weather_refined View
+        run: |
+          aws athena start-query-execution \
+            --query-string "$(cat sql/athena/weather_refined.sql)" \
+            --query-execution-context Database=default \
+            --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
+
+      # Step C: AI Context View (Gold) - Path: sql/athena/view_ai_travel_context.sql
+      - name: Deploy view_ai_travel_context View
+        run: |
+          aws athena start-query-execution \
+            --query-string "$(cat sql/athena/view_ai_travel_context.sql)" \
+            --query-execution-context Database=default \
+            --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
+
+      # Step D: Repair Table Partitions
+      - name: Repair Athena Table Partitions
+        run: |
+          aws athena start-query-execution \
+            --query-string "MSCK REPAIR TABLE weather_data;" \
             --query-execution-context Database=default \
             --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/

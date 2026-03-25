@@ -8,7 +8,8 @@ from datetime import datetime
 
 # --- CONFIGURATION ---
 DATABASE = 'default'
-TABLE = 'weather_ai_training'
+# Updated to point to your new Gold View
+TABLE = 'view_ai_travel_context' 
 S3_OUTPUT = 's3://open-meteo-lake-dinesh-kandoria/athena_results/' 
 REGION = 'ap-southeast-2'
 
@@ -17,6 +18,7 @@ st.set_page_config(page_title="Global Weather AI Oracle", page_icon="🌍", layo
 # --- AWS ATHENA HELPER FUNCTION ---
 @st.cache_data(ttl=3600)
 def fetch_athena_data(query):
+    # Using secrets for credentials as per your existing setup
     athena_client = boto3.client(
         'athena', 
         region_name=st.secrets["AWS_DEFAULT_REGION"],
@@ -37,103 +39,130 @@ def fetch_athena_data(query):
     )
     query_id = response['QueryExecutionId']
 
-    with st.spinner("Querying AWS Athena Data Lake..."):
+    with st.spinner("Consulting the Data Lake..."):
         while True:
             stats = athena_client.get_query_execution(QueryExecutionId=query_id)
             status = stats['QueryExecution']['Status']['State']
             if status in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
                 break
-            time.sleep(2)
+            time.sleep(1) # Faster polling for better UX
 
     if status == 'SUCCEEDED':
         s3_key = f"athena_results/{query_id}.csv"
         bucket_name = S3_OUTPUT.split('/')[2]
-        
         obj = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
         df = pd.read_csv(io.BytesIO(obj['Body'].read()))
         return df
     else:
-        st.error(f"Athena query failed: {stats['QueryExecution']['Status']['StateChangeReason']}")
+        st.error(f"Athena error: {stats['QueryExecution']['Status']['StateChangeReason']}")
         return pd.DataFrame()
+
+# --- SIDEBAR HEALTH CHECK ---
+st.sidebar.header("⚙️ System Status")
+
+# Query the latest ingestion time
+health_query = 'SELECT MAX("observation_time") as last_run FROM "default"."weather_refined"'
+health_df = fetch_athena_data(health_query)
+
+if not health_df.empty and health_df['last_run'].iloc[0]:
+    last_run = pd.to_datetime(health_df['last_run'].iloc[0])
+    
+    # Calculate how long ago the data was updated
+    time_diff = datetime.now() - last_run
+    hours_ago = time_diff.total_seconds() // 3600
+    
+    if hours_ago < 24:
+        st.sidebar.success(f"● Data Lake: Healthy")
+    else:
+        st.sidebar.warning(f"● Data Lake: Stale ({int(hours_ago)}h ago)")
+    
+    st.sidebar.info(f"**Last Sync:** {last_run.strftime('%b %d, %H:%M')} UTC")
+else:
+    st.sidebar.error("● Data Lake: Disconnected")
+
+st.sidebar.divider()
+st.sidebar.markdown("""
+**Infrastructure:**
+- ☁️ AWS S3 (Bronze/Silver)
+- 🏛️ Amazon Athena (SQL)
+- 🤖 LLaMA 3.1 (Groq AI)
+""")
 
 # --- UI FRONTEND ---
 st.title("🌍 Global 50 Cities: AI Weather Oracle")
 
-# 1. Fetch the unique list of cities directly from Athena
-city_query = f"SELECT DISTINCT city FROM {TABLE} ORDER BY city"
+# 1. Fetch cities from the Gold View
+city_query = f'SELECT DISTINCT "city" FROM "default"."{TABLE}" ORDER BY "city"'
 cities_df = fetch_athena_data(city_query)
 
 if not cities_df.empty:
     cities_list = cities_df['city'].tolist()
-    
-    # 2. Create a dropdown menu for the user
-    selected_city = st.selectbox("Select a Global 50 City:", cities_list)
+    selected_city = st.selectbox("Select a Destination:", cities_list)
 
-    # 3. When a city is selected, query its specific data
     if selected_city:
-        # We query all available columns to be safe with schema updates
-        data_query = f"SELECT * FROM {TABLE} WHERE city = '{selected_city}'"
+        # 2. Query the data for the selected city
+        data_query = f'SELECT * FROM "default"."{TABLE}" WHERE "city" = \'{selected_city}\''
         city_data = fetch_athena_data(data_query)
         
         if not city_data.empty:
+            # Ensure forecast_date is string for comparison
+            city_data['forecast_date'] = city_data['forecast_date'].astype(str)
+            available_dates = sorted(city_data['forecast_date'].unique().tolist())
             
-            # Check if the date column exists to apply the Time Travel Blocker
-            if 'obs_date' in city_data.columns:
-                # 1. Get today's date as a string (Format: YYYY-MM-DD)
-                today_str = datetime.now().strftime('%Y-%m-%d')
-                
-                # Ensure data is string format for clean comparison
-                city_data['obs_date'] = city_data['obs_date'].astype(str)
-                
-                # 2. Filter the Pandas DataFrame to ONLY include today or future dates
-                future_data = city_data[city_data['obs_date'] >= today_str]
-                
-                # 3. Extract unique dates for the dropdown
-                available_dates = future_data['obs_date'].unique().tolist()
-                
-                if not available_dates:
-                    st.warning("No future forecast data available for this city right now.")
-                    latest_summary = city_data['ai_summary'].iloc[0] if 'ai_summary' in city_data.columns else "No summary available."
-                    st.info(latest_summary)
-                else:
-                    selected_date = st.selectbox("Select Travel Date:", sorted(available_dates))
-                    st.subheader(f"Latest Insights for {selected_city} on {selected_date}")
-                    
-                    # Filter to ONLY show the summary for the chosen date
-                    final_display_data = future_data[future_data['obs_date'] == selected_date]
-                    latest_summary = final_display_data['ai_summary'].iloc[0]
-                    st.info(latest_summary)
-            else:
-                # Fallback if the 'obs_date' column hasn't been added to the SQL view yet
-                st.subheader(f"Latest Insights for {selected_city}")
-                latest_summary = city_data['ai_summary'].iloc[0] if 'ai_summary' in city_data.columns else "No summary available."
-                st.info(latest_summary)
+            selected_date = st.selectbox("Select Travel Date:", available_dates)
+            
+            # Filter data for the specific chosen date
+            day_data = city_data[city_data['forecast_date'] == selected_date].iloc[0]
+            
+            # --- NEW: VISUAL METRICS ROW ---
+            st.markdown(f"### 📊 Environmental Metrics for {selected_city}")
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Avg Temp", f"{day_data['avg_temp']}°C")
+            m2.metric("Air Quality (AQI)", f"{int(day_data['avg_aqi'])}")
+            m3.metric("Rainfall", f"{day_data['total_precip']}mm")
+            m4.metric("Sunlight", f"{int(day_data['avg_sunlight'])} W/m²")
 
-            # --- THE ON-DEMAND AI ORACLE ---
+            # --- THE AI ORACLE ---
             st.divider()
             st.subheader(f"🤖 Ask the AI Oracle about {selected_city}")
 
-            # Initialize the Groq client using hidden secrets
             groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-            # Button to generate advice
-            if st.button(f"Generate Travel, Clothing & Food Advice for {selected_city}"):
-                with st.spinner("The Oracle is consulting the data..."):
+            if st.button(f"Generate Contextual Advice for {selected_date}"):
+                with st.spinner(f"Analyzing {selected_city}'s local climate..."):
                     try:
-                        # Pass the Athena summary as context
+                        # Use the llm_raw_data string we created in the Gold View
+                        raw_context = day_data['llm_raw_data']
+                        
                         chat_completion = groq_client.chat.completions.create(
                             messages=[
-                                {"role": "system", "content": "You are a helpful travel assistant. Provide advice formatting it with bullet points. Always include top local food and restaurant recommendations suited for the current weather."},
-                                {"role": "user", "content": f"Based on this weather summary: '{latest_summary}', provide Travel & Clothing Advice for {selected_city}. Also, provide information about top food/restaurants to try as per the weather/climate."}
+                                {
+                                    "role": "system", 
+                                    "content": (
+                                        f"You are a localized Travel Expert for {selected_city}. "
+                                        "Interpret raw data based on local climate and cultural norms. "
+                                        "Do not just repeat numbers; explain how they feel. "
+                                        "Format with Markdown and emojis."
+                                    )
+                                },
+                                {
+                                    "role": "user", 
+                                    "content": (
+                                        f"Based on this data: '{raw_context}', provide: \n"
+                                        f"1. Subjective weather feel for {selected_city}.\n"
+                                        "2. Specific clothing and gear recommendations.\n"
+                                        "3. Health tips regarding AQI and sunlight.\n"
+                                        "4. A local activity and restaurant recommendation that fits this specific weather."
+                                    )
+                                }
                             ],
                             model="llama-3.1-8b-instant",
                             max_tokens=1024
                         )
 
-                        # Display the AI's response
                         st.success(chat_completion.choices[0].message.content)
                     except Exception as e:
-                        st.error(f"AI Connection Error: {e}")
+                        st.error(f"AI Oracle is offline: {e}")
 
 else:
-    st.warning("No data found in Athena. Make sure your extraction Lambda has run successfully!")
+    st.warning("No data found. Check your S3 bucket and Lambda status.")
