@@ -37,19 +37,19 @@ jobs:
             --query-execution-context Database=default \
             --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
 
-      # Step B: Refined View (Silver) - Path: sql/athena/weather_refined.sql
+     # Step B: Refined View (Silver)
       - name: Deploy weather_refined View
         run: |
           aws athena start-query-execution \
-            --query-string "$(cat sql/athena/weather_refined.sql)" \
+            --query-string "file://sql/athena/weather_refined.sql" \
             --query-execution-context Database=default \
             --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
 
-      # Step C: AI Context View (Gold) - Path: sql/athena/view_ai_travel_context.sql
+      # Step C: AI Context View (Gold)
       - name: Deploy view_ai_travel_context View
         run: |
           aws athena start-query-execution \
-            --query-string "$(cat sql/athena/view_ai_travel_context.sql)" \
+            --query-string "file://sql/athena/view_ai_travel_context.sql" \
             --query-execution-context Database=default \
             --result-configuration OutputLocation=s3://open-meteo-lake-dinesh-kandoria/athena_pipeline_logs/
 
