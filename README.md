@@ -1,6 +1,7 @@
 🌍 Global 50 Cities: AI Weather Oracle
 An End-to-End Serverless Data Lakehouse & LLaMA-Powered Travel Assistant
-🟢 Live Application / Demo
+
+**[🟢 Live Application / Demo](https://cloud-aws-weather-project-9grnnrrrkqiksy55ch2.streamlit.app/)**
 
 📌 Project Overview
 The Global Weather AI Oracle is a production-grade, fully serverless Data Lakehouse. It automates the extraction, transformation, and loading (ETL) of real-time environmental data for 50 global hubs. By bridging a High-Performance Data Lake (S3 + Athena) with Generative AI (LLaMA 3.1), the application transforms raw meteorological metrics into witty, context-aware travel and culinary advice.
