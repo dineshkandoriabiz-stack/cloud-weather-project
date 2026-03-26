@@ -1,24 +1,23 @@
-CREATE EXTERNAL TABLE `weather_data` (
-  `city` string,
-  `latitude` double,
-  `longitude` double,
-  `time` string,
-  `temperature_2m` double,
-  `aqi` double,
-  `pm2_5` double,
-  `pm10` double,
-  `no2` double,
-  `so2` double,
-  `co` double,
-  `precipitation` double,
-  `rain` double,
-  `showers` double,
-  `shortwave_radiation` double
+CREATE EXTERNAL TABLE IF NOT EXISTS weather_data (
+  city string,
+  latitude string,
+  longitude string,
+  time string,
+  temperature_2m string,
+  precipitation string,
+  rain string,
+  showers string,
+  shortwave_radiation string,
+  aqi string,
+  pm2_5 string,
+  pm10 string,
+  no2 string,
+  so2 string,
+  co string
 )
-PARTITIONED BY (`year` string, `month` string)
-ROW FORMAT DELIMITED
-  FIELDS TERMINATED BY ','
-STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
-OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://open-meteo-lake-dinesh-kandoria/raw_data/'
-TBLPROPERTIES ('skip.header.line.count'='1');
+PARTITIONED BY (year string, month string)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ',' 
+STORED AS TEXTFILE
+LOCATION 's3://open-meteo-lake-dinesh-kandoria/weather_data/'
+TBLPROPERTIES ("skip.header.line.count"="1");

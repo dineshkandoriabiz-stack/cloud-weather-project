@@ -8,17 +8,15 @@ from datetime import datetime
 
 # --- CONFIGURATION ---
 DATABASE = 'default'
-# Updated to point to your new Gold View
+# Pointing to your Gold View that aggregates the 7-day forecast
 TABLE = 'view_ai_travel_context' 
 S3_OUTPUT = 's3://open-meteo-lake-dinesh-kandoria/athena_results/' 
-REGION = 'ap-southeast-2'
 
 st.set_page_config(page_title="Global Weather AI Oracle", page_icon="🌍", layout="wide")
 
 # --- AWS ATHENA HELPER FUNCTION ---
 @st.cache_data(ttl=3600)
 def fetch_athena_data(query):
-    # Using secrets for credentials as per your existing setup
     athena_client = boto3.client(
         'athena', 
         region_name=st.secrets["AWS_DEFAULT_REGION"],
@@ -39,13 +37,13 @@ def fetch_athena_data(query):
     )
     query_id = response['QueryExecutionId']
 
-    with st.spinner("Consulting the Data Lake..."):
+    with st.spinner("Querying the Data Lake..."):
         while True:
             stats = athena_client.get_query_execution(QueryExecutionId=query_id)
             status = stats['QueryExecution']['Status']['State']
             if status in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
                 break
-            time.sleep(1) # Faster polling for better UX
+            time.sleep(0.5) 
 
     if status == 'SUCCEEDED':
         s3_key = f"athena_results/{query_id}.csv"
@@ -60,14 +58,11 @@ def fetch_athena_data(query):
 # --- SIDEBAR HEALTH CHECK ---
 st.sidebar.header("⚙️ System Status")
 
-# Query the latest ingestion time
 health_query = 'SELECT MAX("observation_time") as last_run FROM "default"."weather_refined"'
 health_df = fetch_athena_data(health_query)
 
 if not health_df.empty and health_df['last_run'].iloc[0]:
     last_run = pd.to_datetime(health_df['last_run'].iloc[0])
-    
-    # Calculate how long ago the data was updated
     time_diff = datetime.now() - last_run
     hours_ago = time_diff.total_seconds() // 3600
     
@@ -83,15 +78,15 @@ else:
 st.sidebar.divider()
 st.sidebar.markdown("""
 **Infrastructure:**
-- ☁️ AWS S3 (Bronze/Silver)
-- 🏛️ Amazon Athena (SQL)
-- 🤖 LLaMA 3.1 (Groq AI)
+- ☁️ AWS S3 & Athena
+- 🤖 LLaMA 3.1 (Groq)
+- 📊 7-Day Ensemble Forecast
 """)
 
 # --- UI FRONTEND ---
 st.title("🌍 Global 50 Cities: AI Weather Oracle")
 
-# 1. Fetch cities from the Gold View
+# 1. Fetch cities
 city_query = f'SELECT DISTINCT "city" FROM "default"."{TABLE}" ORDER BY "city"'
 cities_df = fetch_athena_data(city_query)
 
@@ -100,38 +95,52 @@ if not cities_df.empty:
     selected_city = st.selectbox("Select a Destination:", cities_list)
 
     if selected_city:
-        # 2. Query the data for the selected city
-        data_query = f'SELECT * FROM "default"."{TABLE}" WHERE "city" = \'{selected_city}\''
+        # 2. Query ALL available forecast dates for the selected city
+        data_query = f'SELECT * FROM "default"."{TABLE}" WHERE "city" = \'{selected_city}\' ORDER BY "forecast_date" ASC'
         city_data = fetch_athena_data(data_query)
         
         if not city_data.empty:
-            # Ensure forecast_date is string for comparison
-            city_data['forecast_date'] = city_data['forecast_date'].astype(str)
-            available_dates = sorted(city_data['forecast_date'].unique().tolist())
+            # --- WEATHER TREND CHART ---
+            st.subheader(f"📈 7-Day Forecast Trend: {selected_city}")
             
-            selected_date = st.selectbox("Select Travel Date:", available_dates)
+            # Prepare data for charting
+            chart_df = city_data.copy()
+            chart_df['forecast_date'] = pd.to_datetime(chart_df['forecast_date'])
+            chart_df = chart_df.set_index('forecast_date')
+
+            # Display Temperature and AQI trends
+            col_chart1, col_chart2 = st.columns(2)
+            with col_chart1:
+                st.line_chart(chart_df['avg_temp'], color="#FF4B4B")
+                st.caption("Temperature Forecast (°C)")
+            with col_chart2:
+                st.area_chart(chart_df['avg_aqi'], color="#29B5E8")
+                st.caption("Air Quality Index (AQI) Forecast")
+
+            st.divider()
+
+            # --- DAILY SELECTION & METRICS ---
+            st.subheader("📍 Daily Deep-Dive")
+            available_dates = sorted(city_data['forecast_date'].unique().tolist())
+            selected_date = st.select_slider("Pick a date to consult the Oracle:", options=available_dates)
             
             # Filter data for the specific chosen date
             day_data = city_data[city_data['forecast_date'] == selected_date].iloc[0]
             
-            # --- NEW: VISUAL METRICS ROW ---
-            st.markdown(f"### 📊 Environmental Metrics for {selected_city}")
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Avg Temp", f"{day_data['avg_temp']}°C")
-            m2.metric("Air Quality (AQI)", f"{int(day_data['avg_aqi'])}")
-            m3.metric("Rainfall", f"{day_data['total_precip']}mm")
-            m4.metric("Sunlight", f"{int(day_data['avg_sunlight'])} W/m²")
+            m2.metric("Air Quality", f"{int(day_data['avg_aqi'])} AQI")
+            m3.metric("Expected Rain", f"{day_data['total_precip']}mm")
+            m4.metric("Solar Energy", f"{int(day_data['avg_sunlight'])} W/m²")
 
             # --- THE AI ORACLE ---
             st.divider()
-            st.subheader(f"🤖 Ask the AI Oracle about {selected_city}")
+            st.subheader(f"🤖 Oracle's Advice for {selected_date}")
 
-            groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
-            if st.button(f"Generate Contextual Advice for {selected_date}"):
-                with st.spinner(f"Analyzing {selected_city}'s local climate..."):
+            if st.button(f"✨ Ask the Oracle"):
+                groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                with st.spinner(f"Interpreting data for {selected_city}..."):
                     try:
-                        # Use the llm_raw_data string we created in the Gold View
                         raw_context = day_data['llm_raw_data']
                         
                         chat_completion = groq_client.chat.completions.create(
@@ -139,30 +148,22 @@ if not cities_df.empty:
                                 {
                                     "role": "system", 
                                     "content": (
-                                        f"You are a localized Travel Expert for {selected_city}. "
-                                        "Interpret raw data based on local climate and cultural norms. "
-                                        "Do not just repeat numbers; explain how they feel. "
-                                        "Format with Markdown and emojis."
+                                        f"You are a Travel Oracle for {selected_city}. "
+                                        "Use the provided weather and AQI metrics to give travel advice. "
+                                        "Be conversational, witty, and helpful. Use Markdown and emojis."
                                     )
                                 },
                                 {
                                     "role": "user", 
-                                    "content": (
-                                        f"Based on this data: '{raw_context}', provide: \n"
-                                        f"1. Subjective weather feel for {selected_city}.\n"
-                                        "2. Specific clothing and gear recommendations.\n"
-                                        "3. Health tips regarding AQI and sunlight.\n"
-                                        "4. A local activity and restaurant recommendation that fits this specific weather."
-                                    )
+                                    "content": f"Here is the data for {selected_date}: {raw_context}. Please provide travel tips, clothing suggestions, and a recommended activity."
                                 }
                             ],
                             model="llama-3.1-8b-instant",
-                            max_tokens=1024
+                            max_tokens=800
                         )
-
-                        st.success(chat_completion.choices[0].message.content)
+                        st.markdown(chat_completion.choices[0].message.content)
                     except Exception as e:
-                        st.error(f"AI Oracle is offline: {e}")
+                        st.error(f"Oracle is meditating (Error: {e})")
 
 else:
-    st.warning("No data found. Check your S3 bucket and Lambda status.")
+    st.warning("No data found. Please ensure your Lambda has populated S3 and Athena views are created.")
