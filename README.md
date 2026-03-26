@@ -8,15 +8,23 @@ The Global Weather AI Oracle is a production-grade, fully serverless Data Lakeho
 This architecture demonstrates advanced Cloud Engineering, automated DataOps, and GenAI prompt engineering, operating entirely on scalable, low-cost serverless infrastructure.
 
 ## 🏗️ System Architecture
-
 graph TD
+    %% Source to Ingestion
     A[Open-Meteo API] -->|Extract JSON| B(AWS Lambda)
     C[Amazon EventBridge] -->|Scheduled Trigger| B
-    B -->|Load Partitioned CSVs| D[(Amazon S3 Data Lake)]
-    D -->|Schema-on-Read| E(Amazon Athena)
+    
+    %% Storage and Processing
+    B -->|Partitioned CSVs| D[Amazon S3 Data Lake]
+    D -->|Schema-on-Read| E[Amazon Athena]
+    
+    %% Application Layer
     E -->|Structured Context| F[Streamlit Web App]
-    F <-->|Time-Aware Prompting| G((Groq API: LLaMA 3.1))
-    H[GitHub Actions] -->|CI/CD Automation| B & E & F
+    F <-->|Time-Aware Prompting| G[Groq API: LLaMA 3.1]
+    
+    %% DevOps Flow (Explicit lines for better compatibility)
+    H[GitHub Actions] -->|CI/CD| B
+    H -->|CI/CD| E
+    H -->|CI/CD| F
 
 ⚙️ Tech Stack & Pipeline Breakdown
 
