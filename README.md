@@ -23,8 +23,7 @@ graph TD
     %% DevOps Flow (Explicit lines for better compatibility)
     H[GitHub Actions] -->|CI/CD| B
     H -->|CI/CD| E
-    H -->|CI/CD| F
-
+    H -->|CI/CD| F '''
 
 ⚙️ Tech Stack & Pipeline Breakdown
 
