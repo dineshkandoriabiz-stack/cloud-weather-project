@@ -24,7 +24,7 @@ graph TD
     H[GitHub Actions] -->|CI/CD| B
     H -->|CI/CD| E
     H -->|CI/CD| F
-```mermaid
+mermaid```
 
 ⚙️ Tech Stack & Pipeline Breakdown
 
