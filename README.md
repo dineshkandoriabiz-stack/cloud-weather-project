@@ -9,6 +9,7 @@ This architecture demonstrates advanced Cloud Engineering, automated DataOps, an
 
 ## 🏗️ System Architecture
 graph TD
+```
     %% Source to Ingestion
     A[Open-Meteo API] -->|Extract JSON| B(AWS Lambda)
     C[Amazon EventBridge] -->|Scheduled Trigger| B
@@ -22,7 +23,7 @@ graph TD
     H[GitHub Actions] -->|CI/CD| B
     H -->|CI/CD| E
     H -->|CI/CD| F
-
+```
 ⚙️ Tech Stack & Pipeline Breakdown
 
 1. Data Ingestion & Storage (The S3 Data Lake)
