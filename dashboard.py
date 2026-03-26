@@ -58,7 +58,7 @@ def fetch_athena_data(query):
 # --- SIDEBAR HEALTH CHECK ---
 st.sidebar.header("⚙️ System Status")
 
-health_query = 'SELECT MAX("observation_time") as last_run FROM "default"."weather_refined"'
+health_query = 'SELECT MAX("observation_time") as last_run FROM "weather_refined" WHERE "observation_time" <= CURRENT_TIMESTAMP'
 health_df = fetch_athena_data(health_query)
 
 if not health_df.empty and health_df['last_run'].iloc[0]:
@@ -78,7 +78,10 @@ else:
 st.sidebar.divider()
 st.sidebar.markdown("""
 **Infrastructure:**
-- ☁️ AWS S3 & Athena
+- ☁️ AWS S3 
+- 🧠 AWS Athena   
+- 🕒 AWS EventBridge   
+- 🕒 AWS Lambda Functions (Python)                                     
 - 🤖 LLaMA 3.1 (Groq)
 - 📊 7-Day Ensemble Forecast
 """)
@@ -136,7 +139,8 @@ if not cities_df.empty:
             # --- THE AI ORACLE ---
             st.divider()
             st.subheader(f"🤖 Oracle's Advice for {selected_date}")
-
+            # Get today's date for context
+            today_str = datetime.now().strftime("%B %d, %Y")
             if st.button(f"✨ Ask the Oracle"):
                 groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 with st.spinner(f"Interpreting data for {selected_city}..."):
@@ -148,14 +152,17 @@ if not cities_df.empty:
                                 {
                                     "role": "system", 
                                     "content": (
-                                        f"You are a Travel Oracle for {selected_city}. "
-                                        "Use the provided weather and AQI metrics to give travel advice. "
-                                        "Be conversational, witty, and helpful. Use Markdown and emojis."
-                                    )
+                                        f"You are a Travel Oracle. Today is {today_str}. " # <--- KEY ADDITION
+                                        "You will be given weather data for a specific date. "
+                                        "If the forecast date is in the future relative to today, "
+                                         "use future tense (e.g., 'You are planning to visit', 'Tomorrow will be'). "
+                                        "Do not say 'today' if the date is in the future. "
+                                        "Format with Markdown and emojis."
+                                            )
                                 },
                                 {
                                     "role": "user", 
-                                    "content": f"Here is the data for {selected_date}: {raw_context}. Please provide travel tips, clothing suggestions, and a recommended activity."
+                                    "content": f"Here is the data for {selected_date}: {raw_context}. Please provide travel tips, clothing suggestions, and a recommended activity.If day selected by users is future then adapt your sentences to be more predictive and if the day is current then adapt as per that"
                                 }
                             ],
                             model="llama-3.1-8b-instant",

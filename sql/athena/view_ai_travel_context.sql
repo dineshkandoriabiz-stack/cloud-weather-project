@@ -1,18 +1,16 @@
-CREATE OR REPLACE VIEW "view_ai_forecast_context" AS 
+CREATE OR REPLACE VIEW "view_ai_travel_context" AS 
 SELECT 
     "city",
-    "obs_date",
-    -- Create the AI summary for the specific date selected
+    "obs_date" AS "forecast_date", -- <--- THIS FIXES THE PYTHON ERROR
+    ROUND(AVG("temperature"), 1) as "avg_temp",
+    ROUND(AVG("aqi"), 0) as "avg_aqi",
+    ROUND(SUM("precipitation"), 1) as "total_precip",
+    ROUND(AVG("sunlight"), 0) as "avg_sunlight",
+    -- Your Python code expects 'llm_raw_data' for the Groq prompt
     CONCAT(
-        'Forecast for ', "city", ' on ', CAST("obs_date" AS VARCHAR), ': ',
-        'The expected average temperature is ', CAST(ROUND(AVG("temperature"), 1) AS VARCHAR), '°C. ',
-        'The predicted AQI is ', CAST(ROUND(AVG("aqi"), 0) AS VARCHAR), 
-        ' with precipitation around ', CAST(ROUND(SUM("precipitation"), 1) AS VARCHAR), 'mm.'
-    ) AS "ai_prompt_context",
-    -- Raw metrics for your dashboard charts
-    ROUND(AVG("temperature"), 1) AS "temp",
-    ROUND(AVG("aqi"), 0) AS "aqi",
-    ROUND(SUM("precipitation"), 1) AS "precip",
-    ROUND(AVG("sunlight"), 0) AS "sunlight"
-FROM "weather_refined"
+        'Data for ', "city", ' on ', CAST("obs_date" AS VARCHAR), ': ',
+        'Temp is ', CAST(ROUND(AVG("temperature"), 1) AS VARCHAR), 'C, ',
+        'AQI is ', CAST(ROUND(AVG("aqi"), 0) AS VARCHAR), '.'
+    ) AS "llm_raw_data"
+FROM "default"."weather_refined"
 GROUP BY "city", "obs_date";
