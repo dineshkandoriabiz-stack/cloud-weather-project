@@ -1,12 +1,9 @@
-<<<<<<< End-to-End-Serverless-Data-Lakehouse-LLaMA-Powered-Travel-Assistant
+End-to-End-Serverless-Data-Lakehouse-LLaMA-Powered-Travel-Assistant
 =======
 🌍 Global 50 Cities: AI Weather Oracle
 An End-to-End Serverless Data Lakehouse & LLaMA-Powered Travel Assistant
 
 **[🟢 Live Application / Demo](https://cloud-aws-weather-project-9grnnrrrkqiksy55ch2.streamlit.app/)**
->>>>>>> c6c0dbf4ab1d0b0c0e57f273570ecb7e30f5a4d6
-
-
 This architecture demonstrates advanced Cloud Engineering, automated DataOps, and GenAI prompt engineering, operating entirely on scalable, low-cost serverless infrastructure.
 
 ## 🏗️ System Architecture
@@ -26,11 +23,7 @@ graph TD
     D -->|Schema-on-Read| E[Amazon Athena]
     %% Application Layer
     E -->|Structured Context| F[Streamlit Web App]
-    F <-->|Time-Aware Prompting| G[Groq API: LLaMA 3.1]
-    %% DevOps Flow (Explicit lines for better compatibility)
-    H[GitHub Actions] -->|CI/CD| B
-    H -->|CI/CD| E
-    H -->|CI/CD| F
+    F <-->|Time-Aware Prompting| G[Groq API: LLaMA 3.1]   
 ```
 ⚙️ Tech Stack & Pipeline Breakdown
 1. Data Ingestion & Storage (The S3 Data Lake)
@@ -57,14 +50,6 @@ Pandas & Time-Series Filtering: Custom logic to block past-date selections, ensu
 
 Groq API (LLaMA 3.1 8B): Integrates the live Athena SQL summaries as system context for the LLM. Engineered prompts force the model to output structured, bulleted travel, clothing, and localized restaurant recommendations based strictly on the current climate.
 
-🧠 Future Enhancements
-[ ] Integrate AWS Glue Crawlers for automated schema detection.
-
-[ ] Add a visual data dashboard using Plotly for temperature trending.
-
-<<<<<<< HEAD
-[ ] Expand to 100 cities with dynamic API pagination.
-=======
 Streamlit & Plotly: A dynamic dashboard featuring 7-day trend visualizations for Temperature and Air Quality Index (AQI).
 
 Time-Aware Prompt Engineering: Developed a specialized prompt injection layer that feeds the "System Clock" to LLaMA 3.1. This ensures the AI correctly distinguishes between "Today" and "Future Forecasts," eliminating temporal hallucinations.
@@ -87,4 +72,4 @@ Temporal Logic: Fixed AI "Future Hallucinations" by implementing a Python-based 
 [ ] Advanced Monitoring: Integrating AWS CloudWatch Alarms for Lambda execution failures or S3 ingestion delays.
 
 
->>>>>>> c6c0dbf4ab1d0b0c0e57f273570ecb7e30f5a4d6
+
