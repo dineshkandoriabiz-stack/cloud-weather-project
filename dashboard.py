@@ -3,18 +3,27 @@ import boto3
 import pandas as pd
 import time
 import io
+import math
 from groq import Groq
-from datetime import datetime
+from datetime import datetime, date
 
 # --- CONFIGURATION ---
 DATABASE = 'default'
-# Pointing to your Gold View that aggregates the 7-day forecast
 TABLE = 'view_ai_travel_context' 
 S3_OUTPUT = 's3://open-meteo-lake-dinesh-kandoria/athena_results/' 
 
 st.set_page_config(page_title="Global Weather AI Oracle", page_icon="🌍", layout="wide")
 
-# --- AWS ATHENA HELPER FUNCTION ---
+# --- HELPER FUNCTIONS ---
+def safe_int(val):
+    """Safely converts a value to an integer, handling NaN and None."""
+    try:
+        if val is None or (isinstance(val, float) and math.isnan(val)):
+            return None
+        return int(val)
+    except:
+        return None
+
 @st.cache_data(ttl=3600)
 def fetch_athena_data(query):
     athena_client = boto3.client(
@@ -103,74 +112,93 @@ if not cities_df.empty:
         city_data = fetch_athena_data(data_query)
         
         if not city_data.empty:
+            # Convert forecast_date to datetime objects for easy filtering
+            city_data['forecast_date'] = pd.to_datetime(city_data['forecast_date']).dt.date
+
             # --- WEATHER TREND CHART ---
             st.subheader(f"📈 7-Day Forecast Trend: {selected_city}")
             
             # Prepare data for charting
             chart_df = city_data.copy()
-            chart_df['forecast_date'] = pd.to_datetime(chart_df['forecast_date'])
             chart_df = chart_df.set_index('forecast_date')
 
-            # Display Temperature and AQI trends
             col_chart1, col_chart2 = st.columns(2)
             with col_chart1:
                 st.line_chart(chart_df['avg_temp'], color="#FF4B4B")
                 st.caption("Temperature Forecast (°C)")
             with col_chart2:
-                st.area_chart(chart_df['avg_aqi'], color="#29B5E8")
+                # Fill NaNs for chart display only so it doesn't break
+                st.area_chart(chart_df['avg_aqi'].fillna(0), color="#29B5E8")
                 st.caption("Air Quality Index (AQI) Forecast")
 
             st.divider()
 
             # --- DAILY SELECTION & METRICS ---
             st.subheader("📍 Daily Deep-Dive")
-            available_dates = sorted(city_data['forecast_date'].unique().tolist())
-            selected_date = st.select_slider("Pick a date to consult the Oracle:", options=available_dates)
             
-            # Filter data for the specific chosen date
-            day_data = city_data[city_data['forecast_date'] == selected_date].iloc[0]
+            # FILTER: Only show dates from TODAY onwards to hide historical noise
+            today = date.today()
+            available_dates = sorted([d for d in city_data['forecast_date'].unique() if d >= today])
             
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Avg Temp", f"{day_data['avg_temp']}°C")
-            m2.metric("Air Quality", f"{int(day_data['avg_aqi'])} AQI")
-            m3.metric("Expected Rain", f"{day_data['total_precip']}mm")
-            m4.metric("Solar Energy", f"{int(day_data['avg_sunlight'])} W/m²")
+            if not available_dates:
+                 st.warning("No future forecast data available. Please check back later.")
+            else:
+                selected_date = st.select_slider("Pick a date to consult the Oracle:", options=available_dates)
+                
+                # Filter data for the specific chosen date
+                day_data = city_data[city_data['forecast_date'] == selected_date].iloc[0]
+                
+                m1, m2, m3, m4 = st.columns(4)
+                
+                # Metric 1: Temperature
+                m1.metric("Avg Temp", f"{day_data['avg_temp']:.1f}°C")
+                
+                # Metric 2: AQI (THE DEFENSIVE FIX)
+                aqi = safe_int(day_data['avg_aqi'])
+                m2.metric("Air Quality", f"{aqi} AQI" if aqi is not None else "No Data")
+                
+                # Metric 3: Rain
+                m3.metric("Expected Rain", f"{day_data['total_precip']:.1f}mm")
+                
+                # Metric 4: Solar (THE DEFENSIVE FIX)
+                sun = safe_int(day_data['avg_sunlight'])
+                m4.metric("Solar Energy", f"{sun} W/m²" if sun is not None else "No Data")
 
-            # --- THE AI ORACLE ---
-            st.divider()
-            st.subheader(f"🤖 Oracle's Advice for {selected_date}")
-            # Get today's date for context
-            today_str = datetime.now().strftime("%B %d, %Y")
-            if st.button(f"✨ Ask the Oracle"):
-                groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                with st.spinner(f"Interpreting data for {selected_city}..."):
-                    try:
-                        raw_context = day_data['llm_raw_data']
-                        
-                        chat_completion = groq_client.chat.completions.create(
-                            messages=[
-                                {
-                                    "role": "system", 
-                                    "content": (
-                                        f"You are a Travel Oracle. Today is {today_str}. " # <--- KEY ADDITION
-                                        "You will be given weather data for a specific date. "
-                                        "If the forecast date is in the future relative to today, "
-                                         "use future tense (e.g., 'You are planning to visit', 'Tomorrow will be'). "
-                                        "Do not say 'today' if the date is in the future. "
-                                        "Format with Markdown and emojis."
-                                            )
-                                },
-                                {
-                                    "role": "user", 
-                                    "content": f"Here is the data for {selected_date}: {raw_context}. Please provide travel tips, clothing suggestions, and a recommended activity.If day selected by users is future then adapt your sentences to be more predictive and if the day is current then adapt as per that"
-                                }
-                            ],
-                            model="llama-3.1-8b-instant",
-                            max_tokens=800
-                        )
-                        st.markdown(chat_completion.choices[0].message.content)
-                    except Exception as e:
-                        st.error(f"Oracle is meditating (Error: {e})")
+                # --- THE AI ORACLE ---
+                st.divider()
+                st.subheader(f"🤖 Oracle's Advice for {selected_date}")
+                
+                today_str = datetime.now().strftime("%B %d, %Y")
+                
+                if st.button(f"✨ Ask the Oracle"):
+                    groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    with st.spinner(f"Interpreting data for {selected_city}..."):
+                        try:
+                            raw_context = day_data['llm_raw_data']
+                            
+                            chat_completion = groq_client.chat.completions.create(
+                                messages=[
+                                    {
+                                        "role": "system", 
+                                        "content": (
+                                            f"You are a Travel Oracle. Today is {today_str}. "
+                                            "You will be given weather data for a specific date. "
+                                            "If the forecast date is in the future relative to today, "
+                                            "use future tense. Do not say 'today' if the date is in the future. "
+                                            "Format with Markdown and emojis."
+                                        )
+                                    },
+                                    {
+                                        "role": "user", 
+                                        "content": f"Here is the data for {selected_date}: {raw_context}. Please provide travel tips and clothing suggestions."
+                                    }
+                                ],
+                                model="llama-3.1-8b-instant",
+                                max_tokens=800
+                            )
+                            st.markdown(chat_completion.choices[0].message.content)
+                        except Exception as e:
+                            st.error(f"Oracle is meditating (Error: {e})")
 
 else:
     st.warning("No data found. Please ensure your Lambda has populated S3 and Athena views are created.")
