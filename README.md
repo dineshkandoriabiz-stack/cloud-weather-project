@@ -1,7 +1,6 @@
 End-to-End-Serverless-Data-Lakehouse-LLaMA-Powered-Travel-Assistant
 =======
 🌍 Global 50 Cities: AI Weather Oracle
-An End-to-End Serverless Data Lakehouse & LLaMA-Powered Travel Assistant
 
 **[🟢 Live Application / Demo](https://cloud-aws-weather-project-9grnnrrrkqiksy55ch2.streamlit.app/)**
 This architecture demonstrates advanced Cloud Engineering, automated DataOps, and GenAI prompt engineering, operating entirely on scalable, low-cost serverless infrastructure.
@@ -10,20 +9,25 @@ This architecture demonstrates advanced Cloud Engineering, automated DataOps, an
 
 ```mermaid
 graph TD
-    %% Source to Ingestion
-    A[Open-Meteo API] -->|Extract JSON| B(AWS Lambda)
-    C[Amazon EventBridge] -->|Scheduled Trigger| B
-    B -->|Load Raw CSVs| D[(Amazon S3 Data Lake)]
-    D -->|Serverless Query| E(Amazon Athena)
-    E -->|Structured Context| F[Streamlit Web App]
-    F <-->|Prompt & Response| G((Groq API: LLaMA 3.1))
-    H[GitHub Actions] -->|CI/CD Automation| B & E & F
-    %% Storage and Processing
-    B -->|Partitioned CSVs| D[Amazon S3 Data Lake]
-    D -->|Schema-on-Read| E[Amazon Athena]
+    %% Source & Ingestion
+    A[Open-Meteo API] -->|JSON Extraction| B(AWS Lambda)
+    C[Amazon EventBridge] -->|Daily Cron Trigger| B
+    
+    %% Storage & Processing
+    B -->|Partitioned CSVs| D[(Amazon S3 Data Lake)]
+    D -->|Schema-on-Read| E(Amazon Athena)
+    E -.->|Medallion Views| E
+    
     %% Application Layer
-    E -->|Structured Context| F[Streamlit Web App]
-    F <-->|Time-Aware Prompting| G[Groq API: LLaMA 3.1]   
+    E -->|Clean SQL Context| F[Streamlit Web App]
+    F <-->|Time-Aware Prompting| G((Groq API: LLaMA 3.1))
+    
+    %% DevOps
+    H[GitHub Actions] -->|CI/CD Deploy| B & E & F
+
+    %% Styling
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style G fill:#bbf,stroke:#333,stroke-width:2px   
 ```
 ⚙️ Tech Stack & Pipeline Breakdown
 1. Data Ingestion & Storage (The S3 Data Lake)
