@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+<<<<<<< End-to-End-Serverless-Data-Lakehouse-LLaMA-Powered-Travel-Assistant
 =======
 🌍 Global 50 Cities: AI Weather Oracle
 An End-to-End Serverless Data Lakehouse & LLaMA-Powered Travel Assistant
@@ -16,13 +16,11 @@ graph TD
     %% Source to Ingestion
     A[Open-Meteo API] -->|Extract JSON| B(AWS Lambda)
     C[Amazon EventBridge] -->|Scheduled Trigger| B
-<<<<<<< HEAD
     B -->|Load Raw CSVs| D[(Amazon S3 Data Lake)]
     D -->|Serverless Query| E(Amazon Athena)
     E -->|Structured Context| F[Streamlit Web App]
     F <-->|Prompt & Response| G((Groq API: LLaMA 3.1))
     H[GitHub Actions] -->|CI/CD Automation| B & E & F
-=======
     %% Storage and Processing
     B -->|Partitioned CSVs| D[Amazon S3 Data Lake]
     D -->|Schema-on-Read| E[Amazon Athena]
@@ -33,7 +31,6 @@ graph TD
     H[GitHub Actions] -->|CI/CD| B
     H -->|CI/CD| E
     H -->|CI/CD| F
->>>>>>> c6c0dbf4ab1d0b0c0e57f273570ecb7e30f5a4d6
 ```
 ⚙️ Tech Stack & Pipeline Breakdown
 1. Data Ingestion & Storage (The S3 Data Lake)
