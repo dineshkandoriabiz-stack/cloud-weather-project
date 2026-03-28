@@ -68,6 +68,51 @@ Data Integrity: Identified and mitigated "Schema Mismatch" errors caused by stra
 
 Temporal Logic: Fixed AI "Future Hallucinations" by implementing a Python-based date-comparison layer that adjusts the AI's tense (Past/Present/Future) based on the user's selection.
 
+🛠️ Key Technical Features
+1. The Medallion Data Model (SQL)
+Data is refined across three layers within Amazon Athena to ensure high-quality context for the AI:
+
+Bronze: Raw external tables mapping to partitioned S3 CSVs.
+
+Silver: Data cleaning, casting strings to doubles, and timestamp normalization.
+
+Gold: Aggregated daily summaries specifically formatted as "Context Packets" for LLM consumption.
+
+2. Partitioning & Cost Optimization
+Implemented Hive-Style Partitioning (year=2026/month=03/) in S3.
+
+Reduced Athena scan costs by ~90% by isolating queries to specific time-bound prefixes.
+
+3. Temporal Prompt Engineering
+Solved "Time Hallucination" issues where LLMs struggle with current vs. future dates.
+
+Solution: Injected real-time India Standard Time (IST) into the system prompt, enabling the model to distinguish between historical data and future forecasts.
+
+4. Defensive DataOps
+Built-in Value Validation in Streamlit to handle NaN (Not a Number) values from the API (common in Air Quality forecasts).
+
+CI/CD: Automated Lambda and Streamlit deployments via GitHub Actions.
+
+🚀 Tech Stack
+Infrastucture: AWS (Lambda, S3, Athena, EventBridge, IAM)
+
+Languages: Python (Boto3, Pandas, Open-Meteo API)
+
+AI/ML: LLaMA 3.1 via Groq (Inference Optimization)
+
+Frontend: Streamlit Cloud
+
+Automation: GitHub Actions
+
+📈 Dashboard Preview
+The dashboard includes:
+
+System Health Checks: Real-time monitoring of Data Lake freshness.
+
+Trend Analysis: 7-Day interactive charts for Temperature and AQI.
+
+The Oracle: An AI agent that provides predictive travel advice based on specific data points.
+
 🔮 Future Roadmap
 [ ] Multi-Region Redundancy: Deploying Lambda across multiple AWS regions to ensure 100% API availability.
 
