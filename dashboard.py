@@ -67,7 +67,7 @@ def fetch_athena_data(query):
 # --- SIDEBAR HEALTH CHECK ---
 st.sidebar.header("⚙️ System Status")
 
-health_query = 'SELECT MAX("observation_time") as last_run FROM "weather_refined" WHERE "observation_time" <= CURRENT_TIMESTAMP'
+health_query = 'SELECT MAX("batch_processed_at") as last_run FROM "weather_refined"'
 health_df = fetch_athena_data(health_query)
 
 if not health_df.empty and health_df['last_run'].iloc[0]:
