@@ -3,7 +3,18 @@ End-to-End-Serverless-Data-Lakehouse-LLaMA-Powered-Travel-Assistant
 🌍 Global 50 Cities: AI Weather Oracle
 
 **[🟢 Live Application / Demo](https://cloud-aws-weather-project-9grnnrrrkqiksy55ch2.streamlit.app/)**
-This architecture demonstrates advanced Cloud Engineering, automated DataOps, and GenAI prompt engineering, operating entirely on scalable, low-cost serverless infrastructure.
+
+A Serverless Medallion Data Lakehouse with AI-Powered Insights
+This project is a fully automated, end-to-end data pipeline that ingests global weather and air quality data, processes it through a Medallion Architecture on AWS, and serves an AI-driven dashboard for travel recommendations.
+
+**The Architecture: Medallion Flow**
+The project follows the Medallion Architecture to ensure data quality and lineage:
+
+**Bronze (Raw):** Hourly weather and AQI data ingested via AWS Lambda from the Open-Meteo API, stored as JSON/CSV in Amazon S3.
+
+**Silver (Refined):** Data is structured and typed using Amazon Athena views. This layer includes Schema Lineage tracking via the batch_processed_at timestamp.
+
+**Gold (AI Context):** Aggregated daily trends and a "Prompt Payload" view designed specifically for Large Language Model (LLM) consumption.
 
 ## 🏗️ System Architecture
 
@@ -29,7 +40,18 @@ graph TD
     style D fill:#f9f,stroke:#333,stroke-width:2px
     style G fill:#bbf,stroke:#333,stroke-width:2px   
 ```
-⚙️ Tech Stack & Pipeline Breakdown
+⚙️ **Tech Stack & Pipeline Breakdown**
+
+**Zero-Maintenance Partition Projection**
+Instead of traditional AWS Glue Crawlers, this project utilizes Athena Partition Projection.
+
+**How it works**: Athena calculates partition locations (Year/Month) on the fly using pre-defined configuration in TBLPROPERTIES.
+
+**Benefit:** Zero metadata lag. New data is queryable the millisecond it hits S3 without running MSCK REPAIR or paying for Crawler runs
+
+**AI Oracle Integration**
+Powered by LLaMA 3.1 (8B/70B) via the Groq Cloud API. The dashboard doesn't just show numbers; it interprets them. The Oracle provides clothing suggestions and activity tips based on the 7-day forecast ensemble
+
 1. Data Ingestion & Storage (The S3 Data Lake)
 Python & Boto3: A lightweight extraction script querying the Open-Meteo API for 15 granular data points (Temperature, AQI, Precipitation, Solar Radiation).
 
