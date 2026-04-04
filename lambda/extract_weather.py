@@ -71,6 +71,7 @@ def lambda_handler(event, context):
     }
 
     now = datetime.now(timezone.utc)
+    ingestion_time = now.strftime('%Y-%m-%dT%H:%M:%SZ')  # ✅ CHANGE 1: capture Lambda run time once
     year = now.strftime('%Y')
     month = now.strftime('%m')
     timestamp = now.strftime('%d_%H%M')
@@ -80,7 +81,8 @@ def lambda_handler(event, context):
     # Define fields for CSV and API
     weather_fields = ['temperature_2m', 'precipitation', 'rain', 'showers', 'shortwave_radiation']
     air_quality_fields = ['european_aqi', 'pm2_5', 'pm10', 'nitrogen_dioxide', 'sulphur_dioxide', 'carbon_monoxide']
-    csv_headers = ['city', 'latitude', 'longitude', 'time', 'temperature_2m', 'aqi', 'pm2_5', 'pm10', 'no2', 'so2', 'co', 'precipitation', 'rain', 'showers', 'shortwave_radiation']
+    # ✅ CHANGE 2: added ingestion_time to csv_headers
+    csv_headers = ['city', 'latitude', 'longitude', 'time', 'temperature_2m', 'aqi', 'pm2_5', 'pm10', 'no2', 'so2', 'co', 'precipitation', 'rain', 'showers', 'shortwave_radiation', 'ingestion_time']
 
     def fetch_json(base_host, path):
         conn = http.client.HTTPSConnection(base_host)
@@ -107,7 +109,6 @@ def lambda_handler(event, context):
         return output
 
     for city_name, coords in cities.items():
-        # Optimization: Forecast only, timezone=auto for localized accuracy
         weather_path = f"/v1/forecast?latitude={coords['lat']}&longitude={coords['lon']}&hourly={','.join(weather_fields)}&forecast_days=7&timezone=auto"
         air_path = f"/v1/air-quality?latitude={coords['lat']}&longitude={coords['lon']}&hourly={','.join(air_quality_fields)}&forecast_days=7&timezone=auto"
 
@@ -131,6 +132,7 @@ def lambda_handler(event, context):
                 writer.writerow(csv_headers)
 
                 for i, t in enumerate(times):
+                    # ✅ CHANGE 3: appended ingestion_time to every row
                     row = [
                         city_name,
                         coords['lat'],
@@ -147,6 +149,7 @@ def lambda_handler(event, context):
                         weather_series['rain'][i],
                         weather_series['showers'][i],
                         weather_series['shortwave_radiation'][i],
+                        ingestion_time,
                     ]
                     writer.writerow(row)
                     total_records += 1
@@ -162,7 +165,7 @@ def lambda_handler(event, context):
         except Exception as e:
             print(f"❌ Error for {city_name}: {str(e)}")
 
-        time.sleep(0.1) # Safe API spacing
+        time.sleep(0.1)
 
     return {
         'statusCode': 200, 

@@ -19,6 +19,7 @@ SELECT
     -- Time Parsing (Where your "Malformed" error was happening)
     date_parse("time", '%Y-%m-%dT%H:%i') AS "observation_time",
     CAST(substr("time", 1, 10) AS DATE) AS "obs_date",
+    CAST(ingestion_time AS TIMESTAMP) as batch_processed_at,
     "year",
     "month"
 FROM "default"."weather_data";

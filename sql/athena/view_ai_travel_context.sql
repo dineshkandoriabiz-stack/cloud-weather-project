@@ -1,7 +1,8 @@
 CREATE OR REPLACE VIEW "view_ai_travel_context" AS 
 SELECT 
     "city",
-    "obs_date" AS "forecast_date", -- <--- THIS FIXES THE PYTHON ERROR
+    "obs_date" AS "forecast_date", 
+    "batch_processed_at" as "last_refreshed_date",
     ROUND(AVG("temperature"), 1) as "avg_temp",
     ROUND(AVG("aqi"), 0) as "avg_aqi",
     ROUND(SUM("precipitation"), 1) as "total_precip",
